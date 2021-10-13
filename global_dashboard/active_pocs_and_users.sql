@@ -1,0 +1,77 @@
+WITH BASE AS (
+SELECT AP.COUNTRY,
+    REG_POCS,
+    MOBILE_POCS,
+    ACTIVE_POCS,
+    REG_USERS,
+    MOBILE_USERS,
+    ACTIVE_USERS
+FROM (SELECT COUNTRY, 
+      COUNT(DISTINCT POC_ID) AS ACTIVE_POCS
+     FROM WH.DATAMARTS_DIGITAL_COMMS.DIM_ACTIVE_POCS
+     GROUP BY COUNTRY) AS AP
+JOIN (SELECT COUNTRY, 
+      COUNT(DISTINCT USER_ID) AS ACTIVE_USERS
+     FROM WH.DATAMARTS_DIGITAL_COMMS.DIM_ACTIVE_USERS
+     GROUP BY COUNTRY) AS AU
+     ON AP.COUNTRY = AU.COUNTRY
+JOIN (SELECT CASE WHEN COUNTRY = 'Argentina' THEN 'AR'
+		    WHEN COUNTRY = 'Brazil' THEN 'BR'
+			WHEN COUNTRY = 'Colombia' THEN 'CO'
+			WHEN COUNTRY = 'Dominican Republic' THEN 'DO'
+			WHEN COUNTRY = 'Ecuador' THEN 'EC'
+			WHEN COUNTRY = 'Mexico' THEN 'MX'
+            WHEN COUNTRY = 'Panama' THEN 'PA'
+			WHEN COUNTRY = 'Peru' THEN 'PE'
+            WHEN COUNTRY = 'Paraguay' THEN 'PY'
+			WHEN COUNTRY = 'South Africa' THEN 'ZA'
+            END AS COUNTRY,
+            COUNT(DISTINCT USER_ID) AS REG_USERS
+       FROM WH.ANALYTICS.T_GLOBAL_ACTIVE_USERS
+       WHERE COUNTRY IN ('Argentina', 'Brazil', 'Colombia', 'Ecuador',
+                  'Mexico', 'Dominican Republic', 'Panama', 'Peru', 'Paraguay', 'South Africa')
+       GROUP BY COUNTRY) AS RU
+       ON AP.COUNTRY = RU.COUNTRY
+JOIN (SELECT CASE WHEN COUNTRY = 'Argentina' THEN 'AR'
+		    WHEN COUNTRY = 'Brazil' THEN 'BR'
+			WHEN COUNTRY = 'Colombia' THEN 'CO'
+			WHEN COUNTRY = 'Dominican Republic' THEN 'DO'
+			WHEN COUNTRY = 'Ecuador' THEN 'EC'
+			WHEN COUNTRY = 'Mexico' THEN 'MX'
+            WHEN COUNTRY = 'Panama' THEN 'PA'
+			WHEN COUNTRY = 'Peru' THEN 'PE'
+            WHEN COUNTRY = 'Paraguay' THEN 'PY'
+			WHEN COUNTRY = 'South Africa' THEN 'ZA'
+            END AS COUNTRY,
+            COUNT(DISTINCT POC_ID) AS REG_POCS
+       FROM WH.ANALYTICS.T_GLOBAL_ACTIVE_POCS
+       WHERE COUNTRY IN ('Argentina', 'Brazil', 'Colombia', 'Ecuador',
+                  'Mexico', 'Dominican Republic', 'Panama', 'Peru', 'Paraguay', 'South Africa')
+       GROUP BY COUNTRY) AS RP
+       ON AP.COUNTRY = RP.COUNTRY
+JOIN (SELECT COUNTRY,
+             COUNT(DISTINCT USER_ID) AS MOBILE_USERS
+      FROM WH.DATAMARTS_DIGITAL_COMMS.DIM_USERS_W_PLATFORM
+      WHERE PLATFORM IN ('android', 'ios')
+      GROUP BY COUNTRY) AS MU
+       ON AP.COUNTRY = MU.COUNTRY
+JOIN (SELECT COUNTRY,
+             COUNT(DISTINCT POC_ID) AS MOBILE_POCS
+      FROM WH.DATAMARTS_DIGITAL_COMMS.DIM_POCS_W_PLATFORM
+      WHERE PLATFORM IN ('android', 'ios')
+      GROUP BY COUNTRY) AS MP
+       ON AP.COUNTRY = MP.COUNTRY
+)
+
+SELECT COUNTRY,
+    ACTIVE_POCS AS POCS,
+    ACTIVE_USERS AS USERS,
+    'Active' AS TYPE
+FROM BASE
+
+UNION ALL
+SELECT COUNTRY,
+    REG_POCS - ACTIVE_POCS AS POCS,
+    REG_USERS - ACTIVE_USERS AS USERS,
+    'Inactive' AS TYPE
+FROM BASE
