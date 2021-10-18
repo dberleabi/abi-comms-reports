@@ -1,3 +1,4 @@
+-- Configuring the refresh cadence in DBT
 {{
     config(
 	incremental_strategy='delete+insert',
@@ -11,6 +12,7 @@ T_MAX_DATA AS (select dateadd(HOUR, -6, max(RECEIVED_AT)) AS MAX_DATA from {{ th
     T_MAX_DATA AS (select to_date('2018-01-01') AS MAX_DATA),
 {% endif %}  
 
+--Update from dim_reg_users
 -- Registered Users
 REG_USERS AS (
 SELECT DISTINCT
@@ -135,6 +137,7 @@ SPLIT_PART(USER_ID, '_', 1) AS POC_ID, RECEIVED_AT
 FROM SEGMENT_EVENTS.BRAZE_ZA.IN_APP_MESSAGE_VIEWED
 )
 
+--JOIN send events to the campaign_types table
 SELECT messages.COUNTRY,
       CHANNEL,
       messages.CAMPAIGN_ID,
