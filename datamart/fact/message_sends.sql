@@ -1,19 +1,15 @@
--- Configuring the refresh cadence in DBT
-{{
-    config(
-	incremental_strategy='delete+insert',
-        unique_key='MESSAGE_ID'
-    )
-}}
+-- This data is uploaded incrementally
+-- Data sources include:
+-- Braze Events via Currents/Segment
+-- Campaign Metadata via Braze Campaign Details API endpoint
+-- Active users via WH.ANALYTICS
 WITH 
-{% if adapter.get_relation(this.database, this.schema, this.table) and not flags.FULL_REFRESH %}
-T_MAX_DATA AS (select dateadd(HOUR, -6, max(RECEIVED_AT)) AS MAX_DATA from {{ this }}), 
-{% else %}
-    T_MAX_DATA AS (select to_date('2018-01-01') AS MAX_DATA),
-{% endif %}  
 
---Update from dim_reg_users
+    T_MAX_DATA AS (select to_date('2018-01-01') AS MAX_DATA),
+  
+
 -- Registered Users
+-- Based on global logic from WH.ANALYTICS
 REG_USERS AS (
 SELECT DISTINCT
   CASE WHEN COUNTRY = 'Argentina' THEN 'AR'
@@ -34,6 +30,7 @@ WHERE COUNTRY IN ('Argentina', 'Brazil', 'Colombia', 'Ecuador',
 ),
 
 -- Create a table with all Sends
+-- Data is pulled in from Braze via Currents/Segment
 BRAZE_MESSAGES AS
 (
 SELECT 'AR' AS COUNTRY,'PUSH' AS CHANNEL, ID, COALESCE(CAMPAIGN_ID, CANVAS_ID) AS CAMPAIGN_ID,
@@ -137,7 +134,6 @@ SPLIT_PART(USER_ID, '_', 1) AS POC_ID, RECEIVED_AT
 FROM SEGMENT_EVENTS.BRAZE_ZA.IN_APP_MESSAGE_VIEWED
 )
 
---JOIN send events to the campaign_types table
 SELECT messages.COUNTRY,
       CHANNEL,
       messages.CAMPAIGN_ID,
@@ -149,13 +145,10 @@ SELECT messages.COUNTRY,
       POC_ID,
       RECEIVED_AT
 FROM BRAZE_MESSAGES messages
-LEFT JOIN {{ ref('dim_global_campaign_types' )}} campaign_types
+-- Joining metada from campaign layer via Braze API
+LEFT JOIN WH.datamarts_digital_comms.dim_global_campaign_types campaign_types
     ON messages.CAMPAIGN_ID = campaign_types.CAMPAIGN_ID
     AND messages.COUNTRY = campaign_types.COUNTRY
 INNER JOIN REG_USERS -- Filter out bad USER_IDs by JOINing to REG_USERS cte
   ON messages.USER_ID = REG_USERS.USER_ID
   AND messages.COUNTRY = REG_USERS.COUNTRY
-{% if adapter.get_relation(this.database, this.schema, this.table) and not flags.FULL_REFRESH %}
---WHERE a.RECEIVED_AT > (select max(RECEIVED_AT) from {{ this }})
-       WHERE RECEIVED_AT > (select MAX_DATA from T_MAX_DATA)
-{% endif %}
