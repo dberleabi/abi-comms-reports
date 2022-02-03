@@ -1,0 +1,1 @@
+--Create a table containing flex delivery events
