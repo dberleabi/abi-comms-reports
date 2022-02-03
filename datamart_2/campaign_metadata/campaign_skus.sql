@@ -1,4 +1,4 @@
--- Create the table that contains the brands associated with communications campaigns
+-- Create the table that contains the SKUs associated with communications campaigns in a long format
 
 SELECT 
 		COUNTRY
