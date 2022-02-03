@@ -1,0 +1,1 @@
+--This table contains algo conversions using product added as the event where the conversion event is within 1 days of the impression
