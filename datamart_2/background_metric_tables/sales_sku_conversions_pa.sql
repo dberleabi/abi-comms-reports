@@ -1,0 +1,2 @@
+--This table contains sales sku conversions using product added as the event where the conversion event is within 1 days of the impression
+-- A sales sku conversion is defined as an product added event where the SKU matches the SKU tagged in the campaign
