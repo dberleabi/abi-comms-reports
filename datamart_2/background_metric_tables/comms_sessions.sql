@@ -1,0 +1,3 @@
+-- This table associates comms events with the global session mappings
+-- We can't adjust the global sessions logic but we can recreate that logic to include comms events.
+-- Then join the comms event based on the closest event's ID and assign the original session ID to the comms event
