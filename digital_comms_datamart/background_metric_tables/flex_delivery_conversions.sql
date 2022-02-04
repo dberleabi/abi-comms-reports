@@ -1,0 +1,1 @@
+-- This tables contains the conversion events for flex delivery campaigns

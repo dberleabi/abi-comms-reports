@@ -1,0 +1,2 @@
+--This table contains sales brand conversions using product added as the event where the conversion event is within 1 days of the impression
+-- A sales brand conversion is defined as an product added event where the Brand matches the Brand tagged in the campaign

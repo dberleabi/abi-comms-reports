@@ -1,0 +1,22 @@
+--This file contains a list of all order completed items, sourced from WH.SEGMENT.DIM_{COUNTRY}_ORDER_ITEMS
+SELECT 'AR' AS COUNTRY, 
+    ORDER_ITEM_ID, 
+    ORDER_ID, 
+    -- WE CAN ADD USER_ID BY ADJUSTING THE LOGIC OF THE REFERENCED TABLE
+    POC_ID, 
+    RECEIVED_AT, 
+    PRODUCT_BRAND, 
+    PRODUCT_QUANTITY, 
+    PRODUCT_REVENUE, 
+    PRODUCT_SKU, 
+    PRODUCT_NAME, 
+    PRODUCT_RECOMMENDATION_TYPE 
+FROM {{ ref('dim_ar_order_items' )}}
+/* 
+INCLUDE INCREMENTAL LOAD STRATEGY
+*/
+
+UNION ALL
+...
+--ALL COUNTRIES
+...

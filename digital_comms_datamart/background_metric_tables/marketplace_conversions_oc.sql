@@ -1,0 +1,2 @@
+--This table contains marketplace conversions using order completed as the event where the conversion event is within 7 days of the impression
+-- A marketplace conversion is defined as an order completed item event where the SKU is a marketplace SKU
