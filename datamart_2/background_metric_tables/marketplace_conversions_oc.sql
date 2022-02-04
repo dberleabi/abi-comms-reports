@@ -1,2 +1,85 @@
 --This table contains marketplace conversions using order completed as the event where the conversion event is within 7 days of the impression
 -- A marketplace conversion is defined as an order completed item event where the SKU is a marketplace SKU
+WITH 
+CAMPAIGN_DETAILS AS (
+SELECT COUNTRY,
+  CAMPAIGN_ID,
+  NAME AS CAMPAIGN_NAME,
+  CAMPAIGN_TYPE
+FROM WH.dm_digital_comms.global_campaign_metadata T
+WHERE CAMPAIGN_TYPE = 'Marketplace'
+),
+
+BRAZE_EVENTS AS (
+SELECT DISTINCT S.COUNTRY,
+    S.CHANNEL,
+    S.CAMPAIGN_ID,
+    D.CAMPAIGN_NAME,
+    D.CAMPAIGN_TYPE,
+    S.ID AS SEND_ID,
+    EVENT,
+    S.USER_ID,
+    S.POC_ID,
+    S.RECEIVED_AT AS IMPRESSION_TIME
+FROM WH.dm_digital_comms.tracks_global_messages S
+JOIN CAMPAIGN_DETAILS D
+    ON S.COUNTRY = D.COUNTRY
+    AND S.CAMPAIGN_ID = D.CAMPAIGN_ID
+
+),
+
+SENDS AS (
+SELECT DISTINCT COUNTRY,
+    CHANNEL,
+    CAMPAIGN_ID,
+    CAMPAIGN_NAME,
+    CAMPAIGN_TYPE,
+    SEND_ID,
+    USER_ID,
+    POC_ID,
+    IMPRESSION_TIME
+FROM BRAZE_EVENTS
+WHERE EVENT IN ('in_app_message_viewed', 'push_notification_sent')
+),
+
+MP_SKU AS (
+SELECT CASE WHEN COUNTRY = 'DR' THEN 'DO'
+  ELSE COUNTRY END AS COUNTRY,
+  SKU
+FROM SANDBOX.COMMERCIAL_PERFORMANCE.MP_SKUS_MASTERDATA
+),
+
+ORDERS AS (
+SELECT DISTINCT A.COUNTRY,
+    ORDER_ITEM_ID,
+    ORDER_ID,
+    POC_ID,
+    RECEIVED_AT AS ORDERED_AT,
+    PRODUCT_QUANTITY,
+    PRODUCT_REVENUE,
+    PRODUCT_SKU,
+    PRODUCT_NAME,
+    PRODUCT_RECOMMENDATION_TYPE
+FROM WH.datamarts_digital_comms.fact_global_order_items A
+JOIN MP_SKU B
+  ON A.COUNTRY = B.COUNTRY
+  AND ltrim(A.PRODUCT_SKU, '0') = ltrim(B.SKU, '0')
+)
+
+SELECT DISTINCT O.COUNTRY,
+    O.POC_ID,
+    USER_ID,
+    CAMPAIGN_ID,
+    SEND_ID,
+    IMPRESSION_TIME,
+    ORDER_ID,
+    ORDERED_AT,
+    DATEDIFF(SECONDS, IMPRESSION_TIME, ORDERED_AT) AS TIME_TO_CONVERT,
+    CONCAT(SEND_ID, ORDER_ITEM_ID) AS CONVERSION_ID,
+    CURRENT_TIMESTAMP AS UPDATED_AT
+FROM ORDERS O
+JOIN SENDS S
+    ON O.COUNTRY = S.COUNTRY
+    AND O.POC_ID = S.POC_ID
+WHERE DATEDIFF(SECONDS, IMPRESSION_TIME, ORDERED_AT) BETWEEN 0 AND 604800
+
