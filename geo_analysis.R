@@ -49,8 +49,17 @@ sample_geo2 <- data.frame(sample_geo,
 
 #Create a table with POCs and their closest neighbor where that neighbor is within 10 meters
 sample_geo3 <- sample_geo2 %>%
-  select(COUNTRY:DELIVERY_LONGITUDE, n.ACCOUNT_ID, n.DELIVERY_LATITUDE, 
-         n.DELIVERY_LONGITUDE, n.distance, radius100, radius10
+  select(COUNTRY:MAX_ORDER, n.ACCOUNT_ID, n.NAME, n.MIN_ORDER, n.MAX_ORDER, 
+         n.DELIVERY_LATITUDE, n.DELIVERY_LONGITUDE,  n.distance, radius100, radius10
          ) %>%
   filter(DELIVERY_LATITUDE != 0) %>%
-  filter(n.distance <= 10)
+  filter(n.distance == 0) %>%
+  filter(!is.na(MIN_ORDER)) %>%
+  mutate(date_within = case_when(
+    n.MIN_ORDER >= MIN_ORDER & n.MIN_ORDER <= MAX_ORDER ~ 1,
+    n.MAX_ORDER >= MIN_ORDER & n.MIN_ORDER <= MAX_ORDER ~ 1
+  ),
+  interval1 = MIN_ORDER %--% MAX_ORDER,
+  interval2 = n.MIN_ORDER %--% n.MAX_ORDER,
+  overlap = interval1 %within% interval2
+  )
